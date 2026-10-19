@@ -8,6 +8,7 @@ on:
 
 permissions:
   issues: write
+  contents: write
 
 jobs:
   close:
@@ -36,3 +37,20 @@ jobs:
             fi
           done <<<"$gates"
           exit "$status"
+      - name: Keep the schedule enabled
+        # GitHub disables a public repository's scheduled workflows after 60 days without a commit.
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          read -r sha tree when < <(gh api "repos/$GH_REPO/commits/main" --jq '"\(.sha) \(.commit.tree.sha) \(.commit.committer.date)"')
+          age=$(( ($(date +%s) - $(date -d "$when" +%s)) / 86400 ))
+          if (( age >= 45 )); then
+            commit=$(gh api "repos/$GH_REPO/git/commits" -f message="🔧 chore: Keep the daily gate check enabled" \
+              -f tree="$tree" -f "parents[]=$sha" --jq .sha)
+            gh api -X PATCH "repos/$GH_REPO/git/refs/heads/main" -f sha="$commit" >/dev/null
+            echo "Added an empty commit; main's last commit was $age days old."
+          fi

@@ -13,3 +13,6 @@ as Blocked, and lists it under `is:blocked`, until the day arrives.
 - Gates are day-level. The waiting issue's timing note gives any exact time.
 - A gate whose title has no valid date fails the workflow, so GitHub reports it
   instead of leaving the gate open forever.
+- The repository is public, so the workflow's minutes are free. GitHub disables
+  a public repository's scheduled workflows after 60 days without a commit, so
+  the workflow adds an empty commit once `main` has gone 45 days without one.
